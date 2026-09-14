@@ -142,7 +142,7 @@
 
 <footer>
   <button id="clearBtn" type="button">Vaciar</button>
-  <button id="exportBtn" type="button">Exportar JSON</button>
+  <button id="exportBtn" type="button">Enviar pedido</button>
 </footer>
 
 <script type="module">
@@ -320,24 +320,31 @@
     render();
   };
 
-  document.getElementById('exportBtn').onclick = function(){
-    if(items.length === 0){ alert('No hay artículos que exportar.'); return; }
-    var payload = {
-      generado: new Date().toISOString(),
-      articulos: items.map(function(it){
-        return { codigo: it.code, cantidad: it.qty, manual: it.manual };
-      })
-    };
-    var blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    var stamp = new Date().toISOString().slice(0,16).replace(/[-:T]/g,'');
-    a.href = url;
-    a.download = 'pedido_' + stamp + '.json';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+  document.getElementById('exportBtn').onclick = async function(){
+    if(items.length === 0){ alert('No hay artículos en el pedido.'); return; }
+    var fecha = new Date();
+    var dd = String(fecha.getDate()).padStart(2,'0');
+    var mm = String(fecha.getMonth()+1).padStart(2,'0');
+    var texto = 'PEDIDO ' + dd + '/' + mm + '/' + fecha.getFullYear() + '\n\n';
+    items.forEach(function(it){
+      texto += it.code + '  x' + it.qty + (it.manual ? '  (manual)' : '') + '\n';
+    });
+    texto += '\nTotal: ' + items.length + ' artículos';
+
+    if(navigator.share){
+      try{
+        await navigator.share({title:'Pedido', text:texto});
+        return;
+      }catch(e){
+        if(e && e.name === 'AbortError') return;
+      }
+    }
+    try{
+      await navigator.clipboard.writeText(texto);
+      alert('Pedido copiado. Pégalo en WhatsApp.');
+    }catch(e){
+      alert(texto);
+    }
   };
 
   function startCamera(){
