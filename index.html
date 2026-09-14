@@ -20,91 +20,117 @@
   html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     -webkit-user-select:none;user-select:none;}
-  body{padding-bottom:96px;}
+  body{padding-bottom:100px;}
 
-  header{padding:18px 16px 10px;border-bottom:1px solid var(--line);}
+  header{padding:16px 16px 10px;border-bottom:1px solid var(--line);}
   header h1{margin:0;font-size:19px;font-weight:700;letter-spacing:-0.01em;}
   header p{margin:4px 0 0;font-size:13px;color:var(--ink-soft);}
 
   #camWrap{position:relative;background:#000;aspect-ratio:4/3;overflow:hidden;}
   video{width:100%;height:100%;object-fit:cover;display:block;}
-  #reticle{position:absolute;left:10%;right:10%;top:38%;bottom:38%;
-    border:2px solid rgba(255,255,255,.85);border-radius:10px;pointer-events:none;}
+  #reticle{position:absolute;left:10%;right:10%;top:36%;bottom:36%;
+    border:2px solid rgba(255,255,255,.55);border-radius:10px;pointer-events:none;transition:border-color .2s;}
+  #reticle.active{border-color:#5FD68A;border-width:3px;}
   #camStatus{position:absolute;bottom:10px;left:0;right:0;text-align:center;
-    color:#fff;font-size:12px;font-family:ui-monospace,monospace;opacity:.85;}
-  #camOff{display:none;position:absolute;inset:0;display:flex;align-items:center;
+    color:#fff;font-size:12px;font-family:ui-monospace,monospace;opacity:.8;}
+  #camOff{display:none;position:absolute;inset:0;align-items:center;
     justify-content:center;color:#fff;font-size:14px;text-align:center;padding:24px;line-height:1.5;}
+  #camOff.show{display:flex;}
+
+  #scanBtn{display:block;width:100%;padding:18px;border:none;background:var(--ok);
+    color:#fff;font-size:17px;font-weight:700;letter-spacing:.01em;}
+  #scanBtn:disabled{background:var(--ink-soft);}
+  #scanBtn.scanning{background:var(--accent);}
 
   #confirmBar{display:none;padding:14px 16px;background:var(--accent-soft);
-    border-bottom:1px solid var(--line);align-items:center;gap:12px;}
+    border-bottom:1px solid var(--line);flex-direction:column;gap:12px;}
   #confirmBar.show{display:flex;}
-  #confirmCode{font-family:ui-monospace,monospace;font-size:16px;font-weight:600;flex:1;
-    overflow-wrap:anywhere;}
-  .qtyCtrl{display:flex;align-items:center;gap:10px;}
-  .qtyCtrl button{width:38px;height:38px;border-radius:8px;border:1px solid var(--ink);
-    background:var(--paper);font-size:18px;font-weight:600;color:var(--ink);}
-  .qtyCtrl input{width:46px;text-align:center;font-size:16px;border:none;background:none;
-    color:var(--ink);font-weight:700;}
-  #confirmAdd{margin-left:4px;padding:10px 16px;border:none;border-radius:8px;
-    background:var(--ok);color:#fff;font-size:14px;font-weight:700;}
+  #confirmCode{font-family:ui-monospace,monospace;font-size:17px;font-weight:700;
+    overflow-wrap:anywhere;text-align:center;}
+  .confirmRow{display:flex;align-items:center;gap:10px;justify-content:center;}
+  .qtyCtrl{display:flex;align-items:center;gap:8px;}
+  .qtyCtrl button{width:44px;height:44px;border-radius:8px;border:1px solid var(--ink);
+    background:var(--paper);font-size:20px;font-weight:600;color:var(--ink);}
+  .qtyCtrl input{width:58px;height:44px;text-align:center;font-size:18px;
+    border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);font-weight:700;}
+  .confirmBtns{display:flex;gap:10px;}
+  .confirmBtns button{flex:1;padding:13px;border:none;border-radius:8px;font-size:15px;font-weight:700;}
+  #confirmAdd{background:var(--ok);color:#fff;}
+  #confirmCancel{background:none;border:1px solid var(--line);color:var(--danger);}
 
   #manualToggle{display:block;width:100%;padding:13px 16px;border:none;border-top:1px solid var(--line);
     background:var(--paper);color:var(--accent);font-size:14px;font-weight:600;text-align:left;}
   #manualPanel{display:none;padding:12px 16px 16px;border-bottom:1px solid var(--line);gap:10px;
     flex-direction:column;}
   #manualPanel.show{display:flex;}
-  #manualPanel input[type=text]{padding:11px 12px;border:1px solid var(--line);border-radius:8px;
-    font-size:15px;font-family:ui-monospace,monospace;}
-  #manualPanel button{padding:11px;border:none;border-radius:8px;background:var(--ink);
-    color:#fff;font-size:14px;font-weight:700;}
+  #manualPanel input[type=text]{padding:12px;border:1px solid var(--line);border-radius:8px;
+    font-size:16px;font-family:ui-monospace,monospace;}
+  #manualPanel button{padding:12px;border:none;border-radius:8px;background:var(--ink);
+    color:#fff;font-size:15px;font-weight:700;}
 
   #listSection{padding:14px 16px 0;}
-  #listSection h2{font-size:13px;text-transform:none;color:var(--ink-soft);margin:0 0 8px;font-weight:600;}
-  .item{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);}
+  #listSection h2{font-size:13px;color:var(--ink-soft);margin:0 0 4px;font-weight:600;}
+  .item{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line);}
   .item .code{font-family:ui-monospace,monospace;font-size:14px;flex:1;overflow-wrap:anywhere;}
-  .item .qty{font-weight:700;font-size:14px;background:var(--ok-soft);color:var(--ok);
-    padding:4px 9px;border-radius:6px;min-width:28px;text-align:center;}
-  .item .del{border:none;background:none;color:var(--danger);font-size:18px;padding:4px 8px;}
+  .item .itemQty{display:flex;align-items:center;gap:6px;}
+  .item .itemQty button{width:34px;height:34px;border-radius:7px;border:1px solid var(--line);
+    background:var(--paper);font-size:17px;font-weight:600;color:var(--ink);}
+  .item .itemQty input{width:48px;height:34px;text-align:center;font-size:15px;font-weight:700;
+    border:1px solid var(--line);border-radius:7px;background:var(--ok-soft);color:var(--ok);}
+  .item .del{border:none;background:none;color:var(--danger);font-size:18px;padding:4px 6px;}
   #empty{color:var(--ink-soft);font-size:13px;padding:10px 0 20px;}
 
   footer{position:fixed;left:0;right:0;bottom:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom));
     background:var(--paper);border-top:1px solid var(--line);display:flex;gap:10px;}
-  footer button{flex:1;padding:13px;border-radius:9px;border:none;font-size:14px;font-weight:700;}
+  footer button{flex:1;padding:14px;border-radius:9px;border:none;font-size:15px;font-weight:700;}
   #exportBtn{background:var(--ink);color:#fff;}
   #clearBtn{background:none;border:1px solid var(--line);color:var(--danger);}
-  footer button:disabled{opacity:.4;}
 </style>
 </head>
 <body>
 
 <header>
   <h1>Pedido — escaneo</h1>
-  <p>Apunta al código de barras. Confirma la cantidad y añade.</p>
+  <p>Encuadra el código y pulsa Escanear.</p>
 </header>
 
 <div id="camWrap">
   <video id="video" playsinline muted></video>
   <div id="reticle"></div>
-  <div id="camStatus">buscando código…</div>
+  <div id="camStatus">cámara lista</div>
   <div id="camOff">
     La cámara no ha podido activarse.<br>
-    Comprueba que le has dado permiso de cámara a Chrome, o usa la entrada manual de abajo.
+    Comprueba el permiso de cámara, o usa la entrada manual de abajo.
   </div>
 </div>
 
+<button id="scanBtn" type="button">Escanear</button>
+
 <div id="confirmBar">
   <div id="confirmCode"></div>
-  <div class="qtyCtrl">
-    <button id="qtyMinus" type="button">−</button>
-    <input id="qtyValue" type="text" inputmode="numeric" value="1">
-    <button id="qtyPlus" type="button">+</button>
+  <div class="confirmRow">
+    <div class="qtyCtrl">
+      <button id="qtyMinus" type="button">−</button>
+      <input id="qtyValue" type="text" inputmode="numeric" value="1">
+      <button id="qtyPlus" type="button">+</button>
+    </div>
   </div>
-  <button id="confirmAdd" type="button">Añadir</button>
+  <div class="confirmBtns">
+    <button id="confirmCancel" type="button">Descartar</button>
+    <button id="confirmAdd" type="button">Añadir al pedido</button>
+  </div>
 </div>
 
 <button id="manualToggle" type="button">+ Introducir código a mano</button>
 <div id="manualPanel">
   <input id="manualCode" type="text" inputmode="numeric" placeholder="Código interno o EAN">
+  <div class="confirmRow">
+    <div class="qtyCtrl">
+      <button id="manualMinus" type="button">−</button>
+      <input id="manualQty" type="text" inputmode="numeric" value="1">
+      <button id="manualPlus" type="button">+</button>
+    </div>
+  </div>
   <button id="manualAdd" type="button">Añadir código manual</button>
 </div>
 
@@ -124,43 +150,68 @@
   if(!('BarcodeDetector' in window)){
     try{
       await import('https://fastly.jsdelivr.net/npm/barcode-detector@2/dist/es/side-effects.min.js');
-    }catch(e){ /* sin conexión la primera vez: se mostrará el aviso de cámara no disponible */ }
+    }catch(e){}
   }
-  var items = []; // {code, qty, manual}
+
+  var items = [];
   var pendingCode = null;
+  var detector = null;
+  var scanning = false;
+  var scanTimer = null;
+
   var video = document.getElementById('video');
   var camStatus = document.getElementById('camStatus');
   var camOff = document.getElementById('camOff');
+  var reticle = document.getElementById('reticle');
+  var scanBtn = document.getElementById('scanBtn');
   var confirmBar = document.getElementById('confirmBar');
   var confirmCode = document.getElementById('confirmCode');
   var qtyValue = document.getElementById('qtyValue');
-  var lastDetected = null;
-  var lastDetectedAt = 0;
 
   function render(){
     var list = document.getElementById('list');
     var empty = document.getElementById('empty');
     var title = document.getElementById('listTitle');
     list.innerHTML = '';
-    if(items.length === 0){ empty.style.display='block'; }
-    else{ empty.style.display='none'; }
+    empty.style.display = items.length === 0 ? 'block' : 'none';
     title.textContent = 'Artículos del pedido (' + items.length + ')';
     items.forEach(function(it, idx){
       var row = document.createElement('div');
       row.className = 'item';
+
       var codeEl = document.createElement('div');
       codeEl.className = 'code';
       codeEl.textContent = it.code + (it.manual ? '  (manual)' : '');
-      var qtyEl = document.createElement('div');
-      qtyEl.className = 'qty';
-      qtyEl.textContent = it.qty;
+
+      var qtyWrap = document.createElement('div');
+      qtyWrap.className = 'itemQty';
+
+      var minus = document.createElement('button');
+      minus.type = 'button'; minus.textContent = '−';
+      minus.onclick = function(){ if(it.qty > 1){ it.qty--; render(); } };
+
+      var qtyInput = document.createElement('input');
+      qtyInput.type = 'text'; qtyInput.inputMode = 'numeric'; qtyInput.value = it.qty;
+      qtyInput.onchange = function(){
+        var v = parseInt(qtyInput.value, 10);
+        it.qty = (!v || v < 1) ? 1 : v;
+        render();
+      };
+
+      var plus = document.createElement('button');
+      plus.type = 'button'; plus.textContent = '+';
+      plus.onclick = function(){ it.qty++; render(); };
+
+      qtyWrap.appendChild(minus);
+      qtyWrap.appendChild(qtyInput);
+      qtyWrap.appendChild(plus);
+
       var delBtn = document.createElement('button');
-      delBtn.className = 'del';
-      delBtn.type = 'button';
-      delBtn.textContent = '✕';
+      delBtn.className = 'del'; delBtn.type = 'button'; delBtn.textContent = '✕';
       delBtn.onclick = function(){ items.splice(idx,1); render(); };
+
       row.appendChild(codeEl);
-      row.appendChild(qtyEl);
+      row.appendChild(qtyWrap);
       row.appendChild(delBtn);
       list.appendChild(row);
     });
@@ -177,12 +228,40 @@
     render();
   }
 
-  function showConfirm(code){
-    pendingCode = code;
-    confirmCode.textContent = code;
-    qtyValue.value = '1';
-    confirmBar.classList.add('show');
+  function stopScan(msg){
+    scanning = false;
+    if(scanTimer){ clearInterval(scanTimer); scanTimer = null; }
+    reticle.classList.remove('active');
+    scanBtn.classList.remove('scanning');
+    scanBtn.textContent = 'Escanear';
+    camStatus.textContent = msg || 'cámara lista';
   }
+
+  function startScan(){
+    if(!detector){ return; }
+    if(scanning){ stopScan('cancelado'); return; }
+    scanning = true;
+    reticle.classList.add('active');
+    scanBtn.classList.add('scanning');
+    scanBtn.textContent = 'Buscando… (toca para cancelar)';
+    camStatus.textContent = 'buscando código…';
+    var started = Date.now();
+    scanTimer = setInterval(function(){
+      if(Date.now() - started > 12000){ stopScan('no se ha encontrado código'); return; }
+      detector.detect(video).then(function(codes){
+        if(!scanning || codes.length === 0) return;
+        var val = codes[0].rawValue;
+        stopScan('leído');
+        if(navigator.vibrate) navigator.vibrate(60);
+        pendingCode = val;
+        confirmCode.textContent = val;
+        qtyValue.value = '1';
+        confirmBar.classList.add('show');
+      }).catch(function(){});
+    }, 300);
+  }
+
+  scanBtn.onclick = startScan;
 
   document.getElementById('qtyMinus').onclick = function(){
     var v = parseInt(qtyValue.value,10) || 1;
@@ -196,18 +275,32 @@
     addItem(pendingCode, qtyValue.value, false);
     confirmBar.classList.remove('show');
     pendingCode = null;
-    lastDetected = null;
+  };
+  document.getElementById('confirmCancel').onclick = function(){
+    confirmBar.classList.remove('show');
+    pendingCode = null;
+    camStatus.textContent = 'descartado';
   };
 
   document.getElementById('manualToggle').onclick = function(){
     document.getElementById('manualPanel').classList.toggle('show');
   };
+  var manualQty = document.getElementById('manualQty');
+  document.getElementById('manualMinus').onclick = function(){
+    var v = parseInt(manualQty.value,10) || 1;
+    if(v>1) manualQty.value = v-1;
+  };
+  document.getElementById('manualPlus').onclick = function(){
+    var v = parseInt(manualQty.value,10) || 1;
+    manualQty.value = v+1;
+  };
   document.getElementById('manualAdd').onclick = function(){
     var input = document.getElementById('manualCode');
     var code = input.value.trim();
     if(!code) return;
-    addItem(code, 1, true);
+    addItem(code, manualQty.value, true);
     input.value = '';
+    manualQty.value = '1';
   };
 
   document.getElementById('clearBtn').onclick = function(){
@@ -217,6 +310,7 @@
   };
 
   document.getElementById('exportBtn').onclick = function(){
+    if(items.length === 0){ alert('No hay artículos que exportar.'); return; }
     var payload = {
       generado: new Date().toISOString(),
       articulos: items.map(function(it){
@@ -235,36 +329,26 @@
     setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
   };
 
-  // --- Camera + barcode detection ---
   function startCamera(){
     if(!('BarcodeDetector' in window)){
-      camOff.style.display = 'flex';
-      camOff.innerHTML = 'Este navegador no tiene lector de códigos integrado.<br>Actualiza Chrome, o usa la entrada manual de abajo.';
+      camOff.classList.add('show');
+      camOff.innerHTML = 'Este navegador no tiene lector de códigos.<br>Usa la entrada manual de abajo.';
       camStatus.style.display = 'none';
+      scanBtn.disabled = true;
+      scanBtn.textContent = 'Escaneo no disponible';
       return;
     }
     navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})
       .then(function(stream){
         video.srcObject = stream;
         video.play();
-        var detector = new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','code_39','codabar','itf']});
-        setInterval(function(){
-          if(confirmBar.classList.contains('show')) return;
-          detector.detect(video).then(function(codes){
-            if(codes.length === 0) return;
-            var val = codes[0].rawValue;
-            var now = Date.now();
-            if(val === lastDetected && (now - lastDetectedAt) < 2500) return;
-            lastDetected = val;
-            lastDetectedAt = now;
-            if(navigator.vibrate) navigator.vibrate(60);
-            showConfirm(val);
-          }).catch(function(){});
-        }, 400);
+        detector = new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','code_39','codabar','itf']});
       })
-      .catch(function(err){
-        camOff.style.display = 'flex';
+      .catch(function(){
+        camOff.classList.add('show');
         camStatus.style.display = 'none';
+        scanBtn.disabled = true;
+        scanBtn.textContent = 'Cámara no disponible';
       });
   }
 
