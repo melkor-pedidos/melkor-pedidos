@@ -168,7 +168,18 @@
   var confirmCode = document.getElementById('confirmCode');
   var qtyValue = document.getElementById('qtyValue');
 
+  function save(){
+    try{ localStorage.setItem('pedidoMelkor', JSON.stringify(items)); }catch(e){}
+  }
+  function load(){
+    try{
+      var raw = localStorage.getItem('pedidoMelkor');
+      if(raw){ items = JSON.parse(raw) || []; }
+    }catch(e){ items = []; }
+  }
+
   function render(){
+    save();
     var list = document.getElementById('list');
     var empty = document.getElementById('empty');
     var title = document.getElementById('listTitle');
@@ -343,6 +354,11 @@
         video.srcObject = stream;
         video.play();
         detector = new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','code_39','codabar','itf']});
+        camOff.classList.remove('show');
+        camStatus.style.display = '';
+        camStatus.textContent = 'cámara lista';
+        scanBtn.disabled = false;
+        scanBtn.textContent = 'Escanear';
       })
       .catch(function(){
         camOff.classList.add('show');
@@ -352,6 +368,19 @@
       });
   }
 
+  document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState === 'visible'){
+      stopScan();
+      var track = video.srcObject && video.srcObject.getVideoTracks()[0];
+      if(!track || track.readyState !== 'live'){
+        startCamera();
+      }else{
+        video.play().catch(function(){ startCamera(); });
+      }
+    }
+  });
+
+  load();
   startCamera();
   render();
 })();
