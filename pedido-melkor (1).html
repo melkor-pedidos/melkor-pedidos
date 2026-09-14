@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Pedido Melkor — Escaneo</title>
+<style>
+  :root{
+    --paper:#FAF9F5;
+    --ink:#1E2420;
+    --ink-soft:#5B655F;
+    --line:#D8D6CC;
+    --accent:#B7791F;
+    --accent-soft:#F3E4C6;
+    --ok:#3A6B4A;
+    --ok-soft:#E1EEE3;
+    --danger:#B4432E;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    -webkit-user-select:none;user-select:none;}
+  body{padding-bottom:96px;}
+
+  header{padding:18px 16px 10px;border-bottom:1px solid var(--line);}
+  header h1{margin:0;font-size:19px;font-weight:700;letter-spacing:-0.01em;}
+  header p{margin:4px 0 0;font-size:13px;color:var(--ink-soft);}
+
+  #camWrap{position:relative;background:#000;aspect-ratio:4/3;overflow:hidden;}
+  video{width:100%;height:100%;object-fit:cover;display:block;}
+  #reticle{position:absolute;left:10%;right:10%;top:38%;bottom:38%;
+    border:2px solid rgba(255,255,255,.85);border-radius:10px;pointer-events:none;}
+  #camStatus{position:absolute;bottom:10px;left:0;right:0;text-align:center;
+    color:#fff;font-size:12px;font-family:ui-monospace,monospace;opacity:.85;}
+  #camOff{display:none;position:absolute;inset:0;display:flex;align-items:center;
+    justify-content:center;color:#fff;font-size:14px;text-align:center;padding:24px;line-height:1.5;}
+
+  #confirmBar{display:none;padding:14px 16px;background:var(--accent-soft);
+    border-bottom:1px solid var(--line);align-items:center;gap:12px;}
+  #confirmBar.show{display:flex;}
+  #confirmCode{font-family:ui-monospace,monospace;font-size:16px;font-weight:600;flex:1;
+    overflow-wrap:anywhere;}
+  .qtyCtrl{display:flex;align-items:center;gap:10px;}
+  .qtyCtrl button{width:38px;height:38px;border-radius:8px;border:1px solid var(--ink);
+    background:var(--paper);font-size:18px;font-weight:600;color:var(--ink);}
+  .qtyCtrl input{width:46px;text-align:center;font-size:16px;border:none;background:none;
+    color:var(--ink);font-weight:700;}
+  #confirmAdd{margin-left:4px;padding:10px 16px;border:none;border-radius:8px;
+    background:var(--ok);color:#fff;font-size:14px;font-weight:700;}
+
+  #manualToggle{display:block;width:100%;padding:13px 16px;border:none;border-top:1px solid var(--line);
+    background:var(--paper);color:var(--accent);font-size:14px;font-weight:600;text-align:left;}
+  #manualPanel{display:none;padding:12px 16px 16px;border-bottom:1px solid var(--line);gap:10px;
+    flex-direction:column;}
+  #manualPanel.show{display:flex;}
+  #manualPanel input[type=text]{padding:11px 12px;border:1px solid var(--line);border-radius:8px;
+    font-size:15px;font-family:ui-monospace,monospace;}
+  #manualPanel button{padding:11px;border:none;border-radius:8px;background:var(--ink);
+    color:#fff;font-size:14px;font-weight:700;}
+
+  #listSection{padding:14px 16px 0;}
+  #listSection h2{font-size:13px;text-transform:none;color:var(--ink-soft);margin:0 0 8px;font-weight:600;}
+  .item{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);}
+  .item .code{font-family:ui-monospace,monospace;font-size:14px;flex:1;overflow-wrap:anywhere;}
+  .item .qty{font-weight:700;font-size:14px;background:var(--ok-soft);color:var(--ok);
+    padding:4px 9px;border-radius:6px;min-width:28px;text-align:center;}
+  .item .del{border:none;background:none;color:var(--danger);font-size:18px;padding:4px 8px;}
+  #empty{color:var(--ink-soft);font-size:13px;padding:10px 0 20px;}
+
+  footer{position:fixed;left:0;right:0;bottom:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+    background:var(--paper);border-top:1px solid var(--line);display:flex;gap:10px;}
+  footer button{flex:1;padding:13px;border-radius:9px;border:none;font-size:14px;font-weight:700;}
+  #exportBtn{background:var(--ink);color:#fff;}
+  #clearBtn{background:none;border:1px solid var(--line);color:var(--danger);}
+  footer button:disabled{opacity:.4;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Pedido — escaneo</h1>
+  <p>Apunta al código de barras. Confirma la cantidad y añade.</p>
+</header>
+
+<div id="camWrap">
+  <video id="video" playsinline muted></video>
+  <div id="reticle"></div>
+  <div id="camStatus">buscando código…</div>
+  <div id="camOff">
+    La cámara no ha podido activarse.<br>
+    Comprueba que le has dado permiso de cámara a Chrome, o usa la entrada manual de abajo.
+  </div>
+</div>
+
+<div id="confirmBar">
+  <div id="confirmCode"></div>
+  <div class="qtyCtrl">
+    <button id="qtyMinus" type="button">−</button>
+    <input id="qtyValue" type="text" inputmode="numeric" value="1">
+    <button id="qtyPlus" type="button">+</button>
+  </div>
+  <button id="confirmAdd" type="button">Añadir</button>
+</div>
+
+<button id="manualToggle" type="button">+ Introducir código a mano</button>
+<div id="manualPanel">
+  <input id="manualCode" type="text" inputmode="numeric" placeholder="Código interno o EAN">
+  <button id="manualAdd" type="button">Añadir código manual</button>
+</div>
+
+<div id="listSection">
+  <h2 id="listTitle">Artículos del pedido</h2>
+  <div id="list"></div>
+  <div id="empty">Todavía no has añadido ningún artículo.</div>
+</div>
+
+<footer>
+  <button id="clearBtn" type="button">Vaciar</button>
+  <button id="exportBtn" type="button">Exportar JSON</button>
+</footer>
+
+<script type="module">
+(async function(){
+  if(!('BarcodeDetector' in window)){
+    try{
+      await import('https://fastly.jsdelivr.net/npm/barcode-detector@2/dist/es/side-effects.min.js');
+    }catch(e){ /* sin conexión la primera vez: se mostrará el aviso de cámara no disponible */ }
+  }
+  var items = []; // {code, qty, manual}
+  var pendingCode = null;
+  var video = document.getElementById('video');
+  var camStatus = document.getElementById('camStatus');
+  var camOff = document.getElementById('camOff');
+  var confirmBar = document.getElementById('confirmBar');
+  var confirmCode = document.getElementById('confirmCode');
+  var qtyValue = document.getElementById('qtyValue');
+  var lastDetected = null;
+  var lastDetectedAt = 0;
+
+  function render(){
+    var list = document.getElementById('list');
+    var empty = document.getElementById('empty');
+    var title = document.getElementById('listTitle');
+    list.innerHTML = '';
+    if(items.length === 0){ empty.style.display='block'; }
+    else{ empty.style.display='none'; }
+    title.textContent = 'Artículos del pedido (' + items.length + ')';
+    items.forEach(function(it, idx){
+      var row = document.createElement('div');
+      row.className = 'item';
+      var codeEl = document.createElement('div');
+      codeEl.className = 'code';
+      codeEl.textContent = it.code + (it.manual ? '  (manual)' : '');
+      var qtyEl = document.createElement('div');
+      qtyEl.className = 'qty';
+      qtyEl.textContent = it.qty;
+      var delBtn = document.createElement('button');
+      delBtn.className = 'del';
+      delBtn.type = 'button';
+      delBtn.textContent = '✕';
+      delBtn.onclick = function(){ items.splice(idx,1); render(); };
+      row.appendChild(codeEl);
+      row.appendChild(qtyEl);
+      row.appendChild(delBtn);
+      list.appendChild(row);
+    });
+  }
+
+  function addItem(code, qty, manual){
+    code = String(code).trim();
+    if(!code) return;
+    qty = parseInt(qty,10);
+    if(!qty || qty < 1) qty = 1;
+    var existing = items.find(function(it){ return it.code === code; });
+    if(existing){ existing.qty += qty; }
+    else{ items.push({code:code, qty:qty, manual: !!manual}); }
+    render();
+  }
+
+  function showConfirm(code){
+    pendingCode = code;
+    confirmCode.textContent = code;
+    qtyValue.value = '1';
+    confirmBar.classList.add('show');
+  }
+
+  document.getElementById('qtyMinus').onclick = function(){
+    var v = parseInt(qtyValue.value,10) || 1;
+    if(v>1) qtyValue.value = v-1;
+  };
+  document.getElementById('qtyPlus').onclick = function(){
+    var v = parseInt(qtyValue.value,10) || 1;
+    qtyValue.value = v+1;
+  };
+  document.getElementById('confirmAdd').onclick = function(){
+    addItem(pendingCode, qtyValue.value, false);
+    confirmBar.classList.remove('show');
+    pendingCode = null;
+    lastDetected = null;
+  };
+
+  document.getElementById('manualToggle').onclick = function(){
+    document.getElementById('manualPanel').classList.toggle('show');
+  };
+  document.getElementById('manualAdd').onclick = function(){
+    var input = document.getElementById('manualCode');
+    var code = input.value.trim();
+    if(!code) return;
+    addItem(code, 1, true);
+    input.value = '';
+  };
+
+  document.getElementById('clearBtn').onclick = function(){
+    if(items.length && !confirm('¿Vaciar todos los artículos del pedido?')) return;
+    items = [];
+    render();
+  };
+
+  document.getElementById('exportBtn').onclick = function(){
+    var payload = {
+      generado: new Date().toISOString(),
+      articulos: items.map(function(it){
+        return { codigo: it.code, cantidad: it.qty, manual: it.manual };
+      })
+    };
+    var blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    var stamp = new Date().toISOString().slice(0,16).replace(/[-:T]/g,'');
+    a.href = url;
+    a.download = 'pedido_' + stamp + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+  };
+
+  // --- Camera + barcode detection ---
+  function startCamera(){
+    if(!('BarcodeDetector' in window)){
+      camOff.style.display = 'flex';
+      camOff.innerHTML = 'Este navegador no tiene lector de códigos integrado.<br>Actualiza Chrome, o usa la entrada manual de abajo.';
+      camStatus.style.display = 'none';
+      return;
+    }
+    navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})
+      .then(function(stream){
+        video.srcObject = stream;
+        video.play();
+        var detector = new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','code_39','codabar','itf']});
+        setInterval(function(){
+          if(confirmBar.classList.contains('show')) return;
+          detector.detect(video).then(function(codes){
+            if(codes.length === 0) return;
+            var val = codes[0].rawValue;
+            var now = Date.now();
+            if(val === lastDetected && (now - lastDetectedAt) < 2500) return;
+            lastDetected = val;
+            lastDetectedAt = now;
+            if(navigator.vibrate) navigator.vibrate(60);
+            showConfirm(val);
+          }).catch(function(){});
+        }, 400);
+      })
+      .catch(function(err){
+        camOff.style.display = 'flex';
+        camStatus.style.display = 'none';
+      });
+  }
+
+  startCamera();
+  render();
+})();
+</script>
+</body>
+</html>
