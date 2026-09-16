@@ -239,6 +239,22 @@
     render();
   }
 
+  function normalizar(code){
+    code = String(code).trim();
+    // UPC-A de 12 dígitos es un EAN-13 con cero inicial
+    if(/^\d{12}$/.test(code)) code = '0' + code;
+    return code;
+  }
+
+  function checksumOK(code){
+    if(!/^\d{8}$|^\d{13}$/.test(code)) return false;
+    var d = code.split('').map(Number);
+    var control = d.pop();
+    var suma = 0;
+    d.reverse().forEach(function(n, i){ suma += n * (i % 2 === 0 ? 3 : 1); });
+    return ((10 - (suma % 10)) % 10) === control;
+  }
+
   function stopScan(msg){
     scanning = false;
     if(scanTimer){ clearInterval(scanTimer); scanTimer = null; }
@@ -257,11 +273,21 @@
     scanBtn.textContent = 'Buscando… (toca para cancelar)';
     camStatus.textContent = 'buscando código…';
     var started = Date.now();
+    var ultima = null;
     scanTimer = setInterval(function(){
       if(Date.now() - started > 12000){ stopScan('no se ha encontrado código'); return; }
       detector.detect(video).then(function(codes){
         if(!scanning || codes.length === 0) return;
-        var val = codes[0].rawValue;
+        var val = normalizar(codes[0].rawValue);
+
+        if(/^\d+$/.test(val) && !checksumOK(val)){
+          camStatus.textContent = 'lectura incompleta, sigue apuntando…';
+          ultima = null;
+          return;
+        }
+
+        if(val !== ultima){ ultima = val; return; }
+
         stopScan('leído');
         if(navigator.vibrate) navigator.vibrate(60);
         pendingCode = val;
@@ -360,7 +386,7 @@
       .then(function(stream){
         video.srcObject = stream;
         video.play();
-        detector = new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','code_39','codabar','itf']});
+        detector = new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128']});
         camOff.classList.remove('show');
         camStatus.style.display = '';
         camStatus.textContent = 'cámara lista';
