@@ -264,6 +264,36 @@
     camStatus.textContent = msg || 'cámara lista';
   }
 
+  // Se queda solo con el código que cae dentro del recuadro; si hay varios,
+  // elige el más cercano al centro. El recuadro va del 10% al 90% de ancho
+  // y del 36% al 64% de alto, igual que el dibujo de #reticle.
+  function elegirCentrado(codes){
+    var vw = video.videoWidth, vh = video.videoHeight;
+    var rect = video.getBoundingClientRect();
+    var anchoPantalla = rect.width, altoPantalla = rect.height;
+    var conCaja = codes.filter(function(c){ return c.boundingBox; });
+    if(!vw || !vh || !anchoPantalla || !altoPantalla || conCaja.length === 0){
+      // Lector antiguo sin boundingBox: solo se acepta si hay un único código.
+      return codes.length === 1 ? codes[0] : null;
+    }
+    // object-fit: cover recorta el vídeo; hay que deshacer ese recorte.
+    var escala = Math.max(anchoPantalla / vw, altoPantalla / vh);
+    var margenX = (vw - anchoPantalla / escala) / 2;
+    var margenY = (vh - altoPantalla / escala) / 2;
+    var mejor = null, mejorDist = Infinity;
+    conCaja.forEach(function(c){
+      var b = c.boundingBox;
+      var x = ((b.x + b.width / 2) - margenX) * escala / anchoPantalla;
+      var y = ((b.y + b.height / 2) - margenY) * escala / altoPantalla;
+      if(x < 0.10 || x > 0.90 || y < 0.36 || y > 0.64) return;
+      var dist = (x - 0.5) * (x - 0.5) + (y - 0.5) * (y - 0.5);
+      if(dist < mejorDist){ mejorDist = dist; mejor = c; }
+    });
+    return mejor;
+  }
+
+  var LECTURAS_NECESARIAS = 3;
+
   function startScan(){
     if(!detector){ return; }
     if(scanning){ stopScan('cancelado'); return; }
@@ -274,19 +304,38 @@
     camStatus.textContent = 'buscando código…';
     var started = Date.now();
     var ultima = null;
+    var repeticiones = 0;
     scanTimer = setInterval(function(){
       if(Date.now() - started > 12000){ stopScan('no se ha encontrado código'); return; }
       detector.detect(video).then(function(codes){
         if(!scanning || codes.length === 0) return;
-        var val = normalizar(codes[0].rawValue);
 
-        if(/^\d+$/.test(val) && !checksumOK(val)){
-          camStatus.textContent = 'lectura incompleta, sigue apuntando…';
-          ultima = null;
+        var elegido = elegirCentrado(codes);
+        if(!elegido){
+          camStatus.textContent = 'centra el código en el recuadro…';
+          ultima = null; repeticiones = 0;
           return;
         }
 
-        if(val !== ultima){ ultima = val; return; }
+        var val = normalizar(elegido.rawValue);
+
+        if(/^\d+$/.test(val) && !checksumOK(val)){
+          camStatus.textContent = 'lectura incompleta, sigue apuntando…';
+          ultima = null; repeticiones = 0;
+          return;
+        }
+
+        if(val !== ultima){
+          ultima = val; repeticiones = 1;
+          camStatus.textContent = 'comprobando… (1/' + LECTURAS_NECESARIAS + ')';
+          return;
+        }
+
+        repeticiones++;
+        if(repeticiones < LECTURAS_NECESARIAS){
+          camStatus.textContent = 'comprobando… (' + repeticiones + '/' + LECTURAS_NECESARIAS + ')';
+          return;
+        }
 
         stopScan('leído');
         if(navigator.vibrate) navigator.vibrate(60);
