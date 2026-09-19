@@ -32,7 +32,14 @@
     border:2px solid rgba(255,255,255,.55);border-radius:10px;pointer-events:none;transition:border-color .2s;}
   #reticle.active{border-color:#5FD68A;border-width:3px;}
   #camStatus{position:absolute;bottom:10px;left:0;right:0;text-align:center;
-    color:#fff;font-size:12px;font-family:ui-monospace,monospace;opacity:.8;}
+    color:#fff;font-size:17px;font-weight:700;font-family:system-ui,sans-serif;
+    text-shadow:0 1px 3px rgba(0,0,0,.9);}
+  /* Aviso grande: verde al leer, rojo al fallar */
+  #aviso{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-size:130px;line-height:1;font-weight:700;color:#fff;-webkit-text-fill-color:#fff;
+    font-family:system-ui,sans-serif;opacity:0;pointer-events:none;transition:opacity .12s;}
+  #aviso.ok{background:#16a34a;opacity:1;}
+  #aviso.fail{background:#dc2626;opacity:1;}
   #camOff{display:none;position:absolute;inset:0;align-items:center;
     justify-content:center;color:#fff;font-size:14px;text-align:center;padding:24px;line-height:1.5;}
   #camOff.show{display:flex;}
@@ -97,6 +104,7 @@
 <div id="camWrap">
   <video id="video" playsinline muted></video>
   <div id="reticle"></div>
+  <div id="aviso"></div>
   <div id="camStatus">cámara lista</div>
   <div id="camOff">
     La cámara no ha podido activarse.<br>
@@ -294,6 +302,16 @@
 
   var LECTURAS_NECESARIAS = 3;
 
+  // Aviso grande a toda la ventana de la cámara: verde con ✓, rojo con ✕
+  var aviso = document.getElementById('aviso');
+  var avisoTimer = null;
+  function mostrarAviso(tipo){
+    if(avisoTimer) clearTimeout(avisoTimer);
+    aviso.textContent = (tipo === 'ok') ? '✓' : '✕';
+    aviso.className = tipo;
+    avisoTimer = setTimeout(function(){ aviso.className = ''; }, 900);
+  }
+
   function startScan(){
     if(!detector){ return; }
     if(scanning){ stopScan('cancelado'); return; }
@@ -306,7 +324,12 @@
     var ultima = null;
     var repeticiones = 0;
     scanTimer = setInterval(function(){
-      if(Date.now() - started > 12000){ stopScan('no se ha encontrado código'); return; }
+      if(Date.now() - started > 12000){
+        mostrarAviso('fail');
+        if(navigator.vibrate) navigator.vibrate([90,70,90]);
+        stopScan('no se ha encontrado código');
+        return;
+      }
       detector.detect(video).then(function(codes){
         if(!scanning || codes.length === 0) return;
 
@@ -338,6 +361,7 @@
         }
 
         stopScan('leído');
+        mostrarAviso('ok');
         if(navigator.vibrate) navigator.vibrate(60);
         pendingCode = val;
         confirmCode.textContent = val;
