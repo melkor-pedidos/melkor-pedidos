@@ -32,14 +32,7 @@
     border:2px solid rgba(255,255,255,.55);border-radius:10px;pointer-events:none;transition:border-color .2s;}
   #reticle.active{border-color:#5FD68A;border-width:3px;}
   #camStatus{position:absolute;bottom:10px;left:0;right:0;text-align:center;
-    color:#fff;font-size:17px;font-weight:700;font-family:system-ui,sans-serif;
-    text-shadow:0 1px 3px rgba(0,0,0,.9);}
-  /* Aviso grande: verde al leer, rojo al fallar */
-  #aviso{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-    font-size:130px;line-height:1;font-weight:700;color:#fff;-webkit-text-fill-color:#fff;
-    font-family:system-ui,sans-serif;opacity:0;pointer-events:none;transition:opacity .12s;}
-  #aviso.ok{background:#16a34a;opacity:1;}
-  #aviso.fail{background:#dc2626;opacity:1;}
+    color:#fff;font-size:12px;font-family:ui-monospace,monospace;opacity:.8;}
   #camOff{display:none;position:absolute;inset:0;align-items:center;
     justify-content:center;color:#fff;font-size:14px;text-align:center;padding:24px;line-height:1.5;}
   #camOff.show{display:flex;}
@@ -63,6 +56,9 @@
   .confirmBtns{display:flex;gap:10px;}
   .confirmBtns button{flex:1;padding:13px;border:none;border-radius:8px;font-size:15px;font-weight:700;}
   #confirmAdd{background:var(--ok);color:#fff;}
+  #avisoDup{display:none;background:var(--danger);color:#fff;padding:10px 12px;
+    border-radius:8px;font-size:14px;font-weight:600;text-align:center;line-height:1.4;}
+  #avisoDup.show{display:block;}
   #confirmCancel{background:none;border:1px solid var(--line);color:var(--danger);}
 
   #manualToggle{display:block;width:100%;padding:13px 16px;border:none;border-top:1px solid var(--line);
@@ -104,7 +100,6 @@
 <div id="camWrap">
   <video id="video" playsinline muted></video>
   <div id="reticle"></div>
-  <div id="aviso"></div>
   <div id="camStatus">cámara lista</div>
   <div id="camOff">
     La cámara no ha podido activarse.<br>
@@ -116,6 +111,7 @@
 
 <div id="confirmBar">
   <div id="confirmCode"></div>
+  <div id="avisoDup"></div>
   <div class="confirmRow">
     <div class="qtyCtrl">
       <button id="qtyMinus" type="button">−</button>
@@ -242,9 +238,27 @@
     qty = parseInt(qty,10);
     if(!qty || qty < 1) qty = 1;
     var existing = items.find(function(it){ return it.code === code; });
-    if(existing){ existing.qty += qty; }
+    if(existing){ existing.qty = qty; }
     else{ items.push({code:code, qty:qty, manual: !!manual}); }
     render();
+  }
+
+  function mostrarConfirm(code){
+    var aviso = document.getElementById('avisoDup');
+    var boton = document.getElementById('confirmAdd');
+    var ya = items.find(function(it){ return it.code === code; });
+    if(ya){
+      aviso.textContent = 'YA ESTÁ EN EL PEDIDO con ' + ya.qty + ' unidades. La cantidad que dejes aquí sustituye a la anterior.';
+      aviso.classList.add('show');
+      qtyValue.value = ya.qty;
+      boton.textContent = 'Actualizar cantidad';
+      if(navigator.vibrate) navigator.vibrate([80,60,80]);
+    }else{
+      aviso.classList.remove('show');
+      qtyValue.value = '1';
+      boton.textContent = 'Añadir al pedido';
+    }
+    confirmBar.classList.add('show');
   }
 
   function normalizar(code){
@@ -272,46 +286,6 @@
     camStatus.textContent = msg || 'cámara lista';
   }
 
-  // Se queda solo con el código que cae dentro del recuadro; si hay varios,
-  // elige el más cercano al centro. El recuadro va del 10% al 90% de ancho
-  // y del 36% al 64% de alto, igual que el dibujo de #reticle.
-  function elegirCentrado(codes){
-    var vw = video.videoWidth, vh = video.videoHeight;
-    var rect = video.getBoundingClientRect();
-    var anchoPantalla = rect.width, altoPantalla = rect.height;
-    var conCaja = codes.filter(function(c){ return c.boundingBox; });
-    if(!vw || !vh || !anchoPantalla || !altoPantalla || conCaja.length === 0){
-      // Lector antiguo sin boundingBox: solo se acepta si hay un único código.
-      return codes.length === 1 ? codes[0] : null;
-    }
-    // object-fit: cover recorta el vídeo; hay que deshacer ese recorte.
-    var escala = Math.max(anchoPantalla / vw, altoPantalla / vh);
-    var margenX = (vw - anchoPantalla / escala) / 2;
-    var margenY = (vh - altoPantalla / escala) / 2;
-    var mejor = null, mejorDist = Infinity;
-    conCaja.forEach(function(c){
-      var b = c.boundingBox;
-      var x = ((b.x + b.width / 2) - margenX) * escala / anchoPantalla;
-      var y = ((b.y + b.height / 2) - margenY) * escala / altoPantalla;
-      if(x < 0.10 || x > 0.90 || y < 0.36 || y > 0.64) return;
-      var dist = (x - 0.5) * (x - 0.5) + (y - 0.5) * (y - 0.5);
-      if(dist < mejorDist){ mejorDist = dist; mejor = c; }
-    });
-    return mejor;
-  }
-
-  var LECTURAS_NECESARIAS = 3;
-
-  // Aviso grande a toda la ventana de la cámara: verde con ✓, rojo con ✕
-  var aviso = document.getElementById('aviso');
-  var avisoTimer = null;
-  function mostrarAviso(tipo){
-    if(avisoTimer) clearTimeout(avisoTimer);
-    aviso.textContent = (tipo === 'ok') ? '✓' : '✕';
-    aviso.className = tipo;
-    avisoTimer = setTimeout(function(){ aviso.className = ''; }, 900);
-  }
-
   function startScan(){
     if(!detector){ return; }
     if(scanning){ stopScan('cancelado'); return; }
@@ -322,51 +296,25 @@
     camStatus.textContent = 'buscando código…';
     var started = Date.now();
     var ultima = null;
-    var repeticiones = 0;
     scanTimer = setInterval(function(){
-      if(Date.now() - started > 12000){
-        mostrarAviso('fail');
-        if(navigator.vibrate) navigator.vibrate([90,70,90]);
-        stopScan('no se ha encontrado código');
-        return;
-      }
+      if(Date.now() - started > 12000){ stopScan('no se ha encontrado código'); return; }
       detector.detect(video).then(function(codes){
         if(!scanning || codes.length === 0) return;
-
-        var elegido = elegirCentrado(codes);
-        if(!elegido){
-          camStatus.textContent = 'centra el código en el recuadro…';
-          ultima = null; repeticiones = 0;
-          return;
-        }
-
-        var val = normalizar(elegido.rawValue);
+        var val = normalizar(codes[0].rawValue);
 
         if(/^\d+$/.test(val) && !checksumOK(val)){
           camStatus.textContent = 'lectura incompleta, sigue apuntando…';
-          ultima = null; repeticiones = 0;
+          ultima = null;
           return;
         }
 
-        if(val !== ultima){
-          ultima = val; repeticiones = 1;
-          camStatus.textContent = 'comprobando… (1/' + LECTURAS_NECESARIAS + ')';
-          return;
-        }
-
-        repeticiones++;
-        if(repeticiones < LECTURAS_NECESARIAS){
-          camStatus.textContent = 'comprobando… (' + repeticiones + '/' + LECTURAS_NECESARIAS + ')';
-          return;
-        }
+        if(val !== ultima){ ultima = val; return; }
 
         stopScan('leído');
-        mostrarAviso('ok');
         if(navigator.vibrate) navigator.vibrate(60);
         pendingCode = val;
         confirmCode.textContent = val;
-        qtyValue.value = '1';
-        confirmBar.classList.add('show');
+        mostrarConfirm(val);
       }).catch(function(){});
     }, 300);
   }
@@ -406,8 +354,12 @@
   };
   document.getElementById('manualAdd').onclick = function(){
     var input = document.getElementById('manualCode');
-    var code = input.value.trim();
+    var code = normalizar(input.value.trim());
     if(!code) return;
+    var ya = items.find(function(it){ return it.code === code; });
+    if(ya){
+      if(!confirm('Este código YA ESTÁ en el pedido con ' + ya.qty + ' unidades.\n\n¿Dejarlo en ' + manualQty.value + ' unidades?')) return;
+    }
     addItem(code, manualQty.value, true);
     input.value = '';
     manualQty.value = '1';
